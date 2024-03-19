@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+      # maven: 3.8
+
+  pre_build:
+    commands:
+      - mvn clean compile
+
+  build:
+    commands:
+      - mvn package
+
+artifacts:
+  files:
+    - target/*.jar
+    - appspec.yml
+    - scripts/**

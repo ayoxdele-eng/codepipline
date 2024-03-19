@@ -1,0 +1,85 @@
+- hosts: server
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install snapd
+      apt:
+        name: snapd
+        state: present
+        update_cache: yes
+
+    - name: Install amazon-ssm-agent via snap
+      command: snap install amazon-ssm-agent --classic
+
+    - name: Start amazon-ssm-agent service
+      systemd:
+        name: snap.amazon-ssm-agent.amazon-ssm-agent
+        state: started
+        enabled: yes
+
+    - name: Install ruby-full
+      apt:
+        name: ruby-full
+        state: present
+        update_cache: yes
+
+    - name: Install wget
+      apt:
+        name: wget
+        state: present
+        update_cache: yes
+
+    - name: Download CodeDeploy installation script
+      get_url:
+        url: https://aws-codedeploy-us-east-1.s3.us-east-1.amazonaws.com/latest/install
+        dest: /home/ubuntu/install
+
+    - name: Make the installation script executable
+      file:
+        path: /home/ubuntu/install
+        mode: +x
+
+    - name: Run CodeDeploy installation script
+      command: /home/ubuntu/install auto
+
+    - name: Install openjdk-17-jdk
+      apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+
+    - name: Create directory for Java app
+      file:
+        path: /opt/javaapp
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Create javaapp.service file
+      copy:
+        content: |
+          [Unit]
+          Description=Email service
+          Requires=network.target remote-fs.target
+          After=network.target remote-fs.target
+
+          [Service]
+          Type=simple
+          User=ubuntu
+          WorkingDirectory=/opt/apps/
+          ExecStart=/usr/bin/java -jar /opt/javaapp/target/*.jar
+          Restart=on-failure
+          RestartSec=10
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/javaapp.service
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    
